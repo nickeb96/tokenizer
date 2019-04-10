@@ -1,0 +1,8 @@
+[package]
+name = "tokenizer"
+version = "0.1.0"
+authors = ["Nick Boyle <nickboyle5496@gmail.com>"]
+
+[dependencies]
+regex = "*"
+lazy_static = "*"

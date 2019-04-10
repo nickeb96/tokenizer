@@ -1,0 +1,146 @@
+
+extern crate regex;
+#[macro_use]
+extern crate lazy_static;
+
+use regex::{Regex, RegexBuilder, escape};
+
+
+const TOKENS: &[&str] = &[
+    "++",
+    "--",
+    "&&",
+    "||",
+    "==",
+    "!=",
+    "<=",
+    ">=",
+    "+=",
+    "-=",
+    "*=",
+    "/=",
+    "%=",
+    "##",
+    "+",
+    "-",
+    "*",
+    "/",
+    "%",
+    "=",
+    "<",
+    ">",
+    "!",
+    "&",
+    "|",
+    "^",
+    "~",
+    ",",
+    ".",
+    ";",
+    "(",
+    ")",
+    "{",
+    "}",
+    "[",
+    "]",
+    "#",
+    "?",
+    ":",
+];
+
+lazy_static! {
+    static ref RE: Regex = {
+        let identifiers = String::from(r"[0-9a-zA-Z_]+");
+        let strings = String::from(r#""[^"]*""#);
+        let iter = TOKENS.iter().map(|&s| escape(s)).chain(
+            vec![identifiers, strings],
+        );
+        let big_string = iter.collect::<Vec<String>>().join("|");
+        let re = RegexBuilder::new(&format!(r"^[\s\n]*({})", big_string))
+            .multi_line(true)
+            .build()
+            .unwrap();
+        re
+    };
+}
+
+/*
+/// An iterator over the tokens in a `&str`
+pub struct TokenIterator<'a> {
+    remaining_text: &'a str,
+    re: Regex,
+}
+
+
+impl<'a> Iterator for TokenIterator<'a> {
+    type Item = &'a str;
+
+    fn next(&mut self) -> Option<&'a str> {
+        if let Some(cap) = self.re.captures(self.remaining_text) {
+            let mat = cap.get(1).unwrap();
+            self.remaining_text = &self.remaining_text[mat.end()..];
+            return Some(mat.as_str());
+        }
+        None
+    }
+}
+
+/// Returns a `TokenIterator` over the tokens in the passed in string
+pub fn iter_tokens(text: &str) -> TokenIterator {
+    let identifiers = String::from(r"[0-9a-zA-Z_]+");
+    let strings = String::from(r#""[^"]*""#);
+    let iter = TOKENS.iter().map(|&s| escape(s)).chain(
+        vec![identifiers, strings],
+    );
+    let big_string = iter.collect::<Vec<String>>().join("|");
+    let re = RegexBuilder::new(&format!(r"^[\s\n]*({})", big_string))
+        .multi_line(true)
+        .build()
+        .unwrap();
+
+    TokenIterator {
+        remaining_text: text,
+        re: re,
+    }
+}
+*/
+
+pub struct TokenIterator {
+    text: String,
+    cursor: usize,
+}
+
+impl TokenIterator {
+    pub fn set_cursor(&mut self, cursor: usize) -> bool {
+        if self.text.is_char_boundary(cursor) {
+            self.cursor = cursor;
+            true
+        }
+        else {
+            false
+        }
+    }
+}
+
+impl Iterator for TokenIterator {
+    type Item = (usize, usize);
+
+    fn next(&mut self) -> Option<(usize, usize)> {
+        if let Some(cap) = RE.captures(&self.text[self.cursor..]) {
+            let mat = cap.get(1).unwrap();
+            let ret = Some((self.cursor+mat.start(), self.cursor+mat.end()));
+            self.cursor += mat.end();
+            ret
+        }
+        else {
+            None
+        }
+    }
+}
+
+pub fn iter_tokens(text: String) -> TokenIterator {
+    TokenIterator {
+        text,
+        cursor: 0
+    }
+}
