@@ -1,8 +1,4 @@
 
-extern crate regex;
-#[macro_use]
-extern crate lazy_static;
-
 use regex::{Regex, RegexBuilder, escape};
 
 
@@ -48,7 +44,7 @@ const TOKENS: &[&str] = &[
     ":",
 ];
 
-lazy_static! {
+lazy_static::lazy_static! {
     static ref RE: Regex = {
         let identifiers = String::from(r"[0-9a-zA-Z_]+");
         let strings = String::from(r#""[^"]*""#);
@@ -64,7 +60,7 @@ lazy_static! {
     };
 }
 
-/*
+
 /// An iterator over the tokens in a `&str`
 pub struct TokenIterator<'a> {
     remaining_text: &'a str,
@@ -103,14 +99,15 @@ pub fn iter_tokens(text: &str) -> TokenIterator {
         re: re,
     }
 }
-*/
 
-pub struct TokenIterator {
-    text: String,
+
+/// An iterator over the indices of tokens.
+pub struct TokenIndexIterator<'text> {
+    text: &'text str,
     cursor: usize,
 }
 
-impl TokenIterator {
+impl<'text> TokenIndexIterator<'text> {
     pub fn set_cursor(&mut self, cursor: usize) -> bool {
         if self.text.is_char_boundary(cursor) {
             self.cursor = cursor;
@@ -122,13 +119,13 @@ impl TokenIterator {
     }
 }
 
-impl Iterator for TokenIterator {
+impl<'text> Iterator for TokenIndexIterator<'text> {
     type Item = (usize, usize);
 
     fn next(&mut self) -> Option<(usize, usize)> {
         if let Some(cap) = RE.captures(&self.text[self.cursor..]) {
             let mat = cap.get(1).unwrap();
-            let ret = Some((self.cursor+mat.start(), self.cursor+mat.end()));
+            let ret = Some((self.cursor + mat.start(), self.cursor + mat.end()));
             self.cursor += mat.end();
             ret
         }
@@ -138,9 +135,9 @@ impl Iterator for TokenIterator {
     }
 }
 
-pub fn iter_tokens(text: String) -> TokenIterator {
-    TokenIterator {
+pub fn iter_token_indices(text: &str) -> TokenIndexIterator {
+    TokenIndexIterator {
         text,
-        cursor: 0
+        cursor: 0,
     }
 }
